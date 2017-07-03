@@ -2,7 +2,6 @@
 # KEEP UBUNTU MATE
 # Ref:
 # http://www.pyimagesearch.com/2015/10/26/how-to-install-opencv-3-on-raspbian-jessie/
-
 # something else to try in case codecs fail (note from 15Aug16)
 # https://github.com/milq/scripts-ubuntu-debian/blob/master/install-opencv.sh
 
@@ -13,9 +12,7 @@ sudo apt-get -y autoremove
 sudo rpi-update
 # NOTE: reboot suggested
 
-
 # INSTALL THE DEPENDENCIES
-
 # Build tools:
 sudo apt-get install -y build-essential cmake pkg-config
 # image I/O packages to load image file formats: JPEG, PNG, TIFF, etc.:
