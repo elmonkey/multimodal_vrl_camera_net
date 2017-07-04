@@ -140,7 +140,7 @@ class ClientConnect(threading.Thread):
 
 def check_tcp_server(cmd='check', dev=1):
     """
-        Check the server (the status of other devices).
+    Check the server (the status of other devices).
     (str, str) -> (str)
     cmd   = str that can take one of three values: check, connect, disconnect
     devid = str that can take various values that must be included in the 
