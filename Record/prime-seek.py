@@ -13,7 +13,7 @@ from seek_camera import thermal_camera
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Downloads/temp/OpenNI-Linux-x64-2.2/Redist'
+dist = '/home/julian/Install/OpenNI2-x64/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -67,6 +67,17 @@ def get_depth():
     d4d = 255 - cv2.cvtColor(d4d, cv2.COLOR_GRAY2RGB)
     return dmap, d4d
 
+def get_8bit(frame):
+    h, w = frame.shape
+    output = np.zeros((h,w,3))
+    temp1 = frame >> 8
+    temp2 = (frame << 8) >> 8 
+    output[:,:,1] = temp1.astype('uint8', casting = 'unsafe')
+    output[:,:,0] = temp2.astype('uint8', casting = 'unsafe')
+    output[:,:,2] = output[:,:,0]
+    output = output.astype('uint8')
+    return output
+
 # ==============================================================================
 # Video .avi output setup
 # ==============================================================================
@@ -90,18 +101,18 @@ fps = 8.0
 # THE CODECS
 # ==============================================================================
 fourcc = cv2.cv.CV_FOURCC('M', 'J', 'P', 'G')
-
-rgb_vid = cv2.VideoWriter('Videos/rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
-ir_vid = cv2.VideoWriter('Videos/ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-ir_full_vid = cv2.VideoWriter('Videos/ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-depth_vid = cv2.VideoWriter('Videos/depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
-depth_full_vid = cv2.VideoWriter('Videos/depth_full_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
+video_location = '/home/julian/Videos/'
+rgb_vid = cv2.VideoWriter(video_location+'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
+ir_vid = cv2.VideoWriter(video_location+'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+ir_full_vid = cv2.VideoWriter(video_location+'ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+depth_vid = cv2.VideoWriter(video_location+'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
+depth_full_vid = cv2.VideoWriter(video_location+'depth_full_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
 done = False
 while not done:
-    k = cv2.waitKey(1)
+    k = cv2.waitKey(0) & 255
     # capture frames
     rgb_frame = get_rgb()
     full_ir = therm.get_frame()
@@ -117,9 +128,9 @@ while not done:
     disp = cv2.flip(disp, 1)
     cv2.imshow("live", disp)
     rgb_vid.write(rgb_frame)
-    ir_full_vid.write(full_ir)
+    ir_full_vid.write(get_8bit(full_ir))
     ir_vid.write(ir_frame)
-    depth_full_vid.write(full_depth)
+    depth_full_vid.write(get_8bit(full_depth))
     depth_vid.write(depth_frame)
 
     f += 1
