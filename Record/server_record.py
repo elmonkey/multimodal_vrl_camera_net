@@ -1,5 +1,5 @@
 """
-Created on Mon Jul  3 09:54:53 2017
+Created on Thur Jul  6 09:54:53 2017
 
 @author: Julian
 
@@ -10,10 +10,23 @@ import cv2
 from primesense import openni2  # , nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
+import sys
+import time
+import os
+import csv
+import numpy as np
+import pandas as pd
+from time import localtime, strftime, gmtime
+import client
+import serial
+
+
+# Device number
+devN = 1
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Install/OpenNI2-x64/Redist'
+dist = '/home/julian/Downloads/temp/OpenNI-Linux-x64-2.2/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -66,18 +79,51 @@ def get_depth():
     d4d = np.uint8(dmap.astype(float) * 255 / 2**12 - 1)
     d4d = 255 - cv2.cvtColor(d4d, cv2.COLOR_GRAY2RGB)
     return dmap, d4d
-
-def get_8bit(frame):
-    h, w = frame.shape
-    output = np.zeros((h,w,3))
-    temp1 = frame >> 8
-    temp2 = (frame << 8) >> 8 
-    output[:,:,1] = temp1.astype('uint8', casting = 'unsafe')
-    output[:,:,0] = temp2.astype('uint8', casting = 'unsafe')
-    output[:,:,2] = output[:,:,0]
-    output = output.astype('uint8')
-    return output
-
+    
+# ==============================================================================
+# Server Communication setup
+# ==============================================================================
+#############################################################################
+def talk2server(cmd='connect', devN=1):
+    """
+    Communicate with server 'if active'
+    inputs:
+        cmd = str 'connect' ,'check' , 'sync' or 'close'
+        devN = int 1, 2, ... n, (must be declared in server_threads.py)
+    outputs:
+        server_reponse = str, server response
+        server_time = str, server timestamp
+    usage:
+    server_response, server_time = talk2server(cmd='connect',devN=1)
+    """
+    try:
+        server_response, server_time = client.check_tcp_server(cmd=cmd, dev=devN).split("_")
+        server_response, server_time = clientConnectThread.get_command()
+    except:  # noserver response
+        server_time = "na"
+        server_response = "none"
+    # print "server reponse: {} and timestamp: {}".format(server_response, server_time)
+    return server_response, server_time
+    
+synctype = "relaxed"
+# TCP communication
+# Start the client thread:
+clientConnectThread = client.ClientConnect("connect", "{}".format(devN))
+clientConnectThread.setDaemon(True)
+clientConnectThread.start()  # launching thread
+# time.sleep(1)
+server_time = 0.0
+c = 0
+server_response = "none"
+response = clientConnectThread.get_command()
+if "_" in response:
+    server_response, server_time = response.split("_")
+else:
+    server_reponse = response
+# Create a pandas dataframe to hold the information (index starts at 1)
+cols = ["frameN", "localtime", "servertime"]
+df = pd.DataFrame(columns=cols)
+df.loc[c] = [0, server_time, time.time()]
 # ==============================================================================
 # Video .avi output setup
 # ==============================================================================
@@ -90,8 +136,8 @@ dmap, depth_frame = get_depth()
 ir_frame = therm.get_frame()
 rgb_h, rgb_w, channels = rgb_frame.shape
 depth_h, depth_w, depth_channels = depth_frame.shape
-ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
 ir_w, ir_h = ir_frame.shape
+ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
 depth_place = np.zeros((depth_h, depth_w, channels), dtype='uint8')
 place_ir = rgb_h / 2 - ir_h / 2
 place_depth = rgb_h / 2 - depth_h / 2
@@ -101,18 +147,22 @@ fps = 8.0
 # THE CODECS
 # ==============================================================================
 fourcc = cv2.cv.CV_FOURCC('M', 'J', 'P', 'G')
-video_location = '/home/julian/Videos/'
-rgb_vid = cv2.VideoWriter(video_location+'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
-ir_vid = cv2.VideoWriter(video_location+'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-ir_full_vid = cv2.VideoWriter(video_location+'ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-depth_vid = cv2.VideoWriter(video_location+'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
-depth_full_vid = cv2.VideoWriter(video_location+'depth_full_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
+
+rgb_vid = cv2.VideoWriter('Videos/rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
+ir_vid = cv2.VideoWriter('Videos/ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+ir_full_vid = cv2.VideoWriter('Videos/ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+depth_vid = cv2.VideoWriter('Videos/depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
+depth_full_vid = cv2.VideoWriter('Videos/depth_full_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
 done = False
+
+tic = time.time()
+start_t = tic
+
 while not done:
-    k = cv2.waitKey(0) & 255
+    k = cv2.waitKey(1) & 255
     # capture frames
     rgb_frame = get_rgb()
     full_ir = therm.get_frame()
@@ -127,10 +177,38 @@ while not done:
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     disp = cv2.flip(disp, 1)
     cv2.imshow("live", disp)
+    
+    run_time = time.time() - tic
+    
+    # === check synchronization type
+    if synctype == 'strict':
+        if server_response == 'save':
+            rgb_vid.write(rgb_frame)
+            ir_full_vid.write(full_ir)
+            ir_vid.write(ir_frame)
+            depth_full_vid.write(full_depth)
+            depth_vid.write(depth_frame)
+            # Write Datarows
+            df.loc[c] = [f, strftime("%a, %d %b %Y %H:%M:%S +0000", localtime()), server_time]
+            f += 1
+            c += 1
+    elif synctype == 'relaxed':
+        rgb_vid.write(rgb_frame)
+        ir_full_vid.write(full_ir)
+        ir_vid.write(ir_frame)
+        depth_full_vid.write(full_depth)
+        depth_vid.write(depth_frame)
+        
+        # Write Datarows
+        df.loc[c] = [f, run_time, server_time]
+        f += 1
+        c += 1
+    else:
+            print "synchronization type unknown"
     rgb_vid.write(rgb_frame)
-    ir_full_vid.write(get_8bit(full_ir))
+    ir_full_vid.write(full_ir)
     ir_vid.write(ir_frame)
-    depth_full_vid.write(get_8bit(full_depth))
+    depth_full_vid.write(full_depth)
     depth_vid.write(depth_frame)
 
     f += 1
@@ -147,5 +225,6 @@ ir_vid.release()
 ir_full_vid.release()
 depth_vid.release()
 depth_full_vid.release()
+clientConnectThread.update_command("close")
 cv2.destroyWindow("live")
 print ("Completed video generation using {} codec". format(fourcc))

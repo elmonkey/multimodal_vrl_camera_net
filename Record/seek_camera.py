@@ -157,6 +157,7 @@ class thermal_camera():
 ##        mask = abs(mask_hold-1)
 ##        output += mask*255
         output = frame >> 2
+        output[output>1024] = 0
         output = output.astype('uint8')
         output = np.rot90(output,1)
         output = cv2.cvtColor(output, cv2.COLOR_GRAY2BGR)
