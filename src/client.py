@@ -6,13 +6,15 @@ tcp_client.py
 
 ref: 
     https://docs.python.org/2/library/socketserver.html
-
+    
+set-up client using: 
+    sudo ip addr add 192.168.0.13/2 dev eno1
+    sudo ip route add default via 192.168.0.255
 Version 2: 03 April 2016
     Using threads to read server-client communications
      - Thx to C wheat.
 
-@author: carlos
-"""
+@author: carlos"""
 import socket
 import threading
 import time
@@ -25,7 +27,7 @@ from socket import error as socket_error
 # ----------------------------------------------------------------------------
 
 # HOST = "localhost" # Local network
-HOST = "192.168.0.100"  # Local network
+HOST = "192.168.0.12"  # Local network
 
 
 def update_command(request='check'):
@@ -41,8 +43,8 @@ class ClientConnect(threading.Thread):
     dev_dict = {
         'dev1': {'PORT': 50007},
         'dev2': {'PORT': 50008},
-        'dev3': {'PORT': 50009},
-        'dev4': {'PORT': 50010},
+        #        'dev3': {'PORT': 50009},
+        #        'dev4': {'PORT': 50010},
         #'dev5':{'PORT':50011},
         #'dev6':{'PORT':50012}
     }
@@ -150,13 +152,13 @@ def check_tcp_server(cmd='check', dev=1):
         """
     # ====== Client Variables:
     #HOST = "localhost"
-    HOST = "192.168.0.100"
+    HOST = "192.168.0.12"
     received = ""
     devid = "dev{}".format(dev)
     dev_dict = {'dev1': {'PORT': 50007},
                 'dev2': {'PORT': 50008},
-                'dev3': {'PORT': 50009},
-                'dev4': {'PORT': 50010},
+                #                'dev3': {'PORT': 50009},
+                #                'dev4': {'PORT': 50010},
                 # 'dev5':{'PORT':50011},
                 # 'dev6':{'PORT':50012}
                 }

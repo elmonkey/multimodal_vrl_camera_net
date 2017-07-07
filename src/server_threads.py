@@ -39,8 +39,8 @@ terminate = False  # termiantion flag
 
 dev_dict = {'dev1': {'PORT': 50007},
             'dev2': {'PORT': 50008},
-#            'dev3': {'PORT': 50009},
-#            'dev4': {'PORT': 50010}
+            #            'dev3': {'PORT': 50009},
+            #            'dev4': {'PORT': 50010}
             }
 
 roll = {}
