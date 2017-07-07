@@ -20,13 +20,12 @@ from time import localtime, strftime, gmtime
 import client
 import serial
 
-
 # Device number
-devN = 1
+devN = 2
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Downloads/temp/OpenNI-Linux-x64-2.2/Redist'
+dist = '/home/julian/Install/OpenNI2-x64/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -105,7 +104,7 @@ def talk2server(cmd='connect', devN=1):
     # print "server reponse: {} and timestamp: {}".format(server_response, server_time)
     return server_response, server_time
     
-synctype = "relaxed"
+synctype = "strict"
 # TCP communication
 # Start the client thread:
 clientConnectThread = client.ClientConnect("connect", "{}".format(devN))
@@ -180,6 +179,14 @@ while not done:
     
     run_time = time.time() - tic
     
+    # Poll the server:
+    clientConnectThread.update_command("check")
+    response = clientConnectThread.get_command()
+    if "_" in response:
+        server_response, server_time = response.split("_")
+    else:
+        server_reponse = response
+    
     # === check synchronization type
     if synctype == 'strict':
         if server_response == 'save':
@@ -192,6 +199,7 @@ while not done:
             df.loc[c] = [f, strftime("%a, %d %b %Y %H:%M:%S +0000", localtime()), server_time]
             f += 1
             c += 1
+            print ("frame No. recorded ", f)
     elif synctype == 'relaxed':
         rgb_vid.write(rgb_frame)
         ir_full_vid.write(full_ir)
@@ -205,14 +213,7 @@ while not done:
         c += 1
     else:
             print "synchronization type unknown"
-    rgb_vid.write(rgb_frame)
-    ir_full_vid.write(full_ir)
-    ir_vid.write(ir_frame)
-    depth_full_vid.write(full_depth)
-    depth_vid.write(depth_frame)
 
-    f += 1
-    print ("frame No.", f)
     if k == 27:  # esc key
         done = True
 

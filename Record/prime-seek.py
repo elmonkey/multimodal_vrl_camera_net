@@ -101,7 +101,7 @@ fps = 8.0
 # THE CODECS
 # ==============================================================================
 fourcc = cv2.cv.CV_FOURCC('M', 'J', 'P', 'G')
-video_location = '/home/julian/Videos/'
+video_location = '/home/julian/Videos/pos_1_'
 rgb_vid = cv2.VideoWriter(video_location+'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
 ir_vid = cv2.VideoWriter(video_location+'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
 ir_full_vid = cv2.VideoWriter(video_location+'ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
@@ -112,7 +112,7 @@ print ("Press 'esc' to terminate")
 f = 0   # frame counter
 done = False
 while not done:
-    k = cv2.waitKey(0) & 255
+    k = cv2.waitKey(1) & 255
     # capture frames
     rgb_frame = get_rgb()
     full_ir = therm.get_frame()
