@@ -116,7 +116,7 @@ if not os.path.exists(video_location+'ir_full_vid/'):
 if not os.path.exists(video_location+'depth_full_vid/'):
     os.makedirs(video_location+'depth_full_vid/')
 ir_name = video_location+'ir_full_vid/ir_frame_'
-depth_name = video_location+'ir_full_vid/depth_frame_'
+depth_name = video_location+'depth_full_vid/depth_frame_'
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
