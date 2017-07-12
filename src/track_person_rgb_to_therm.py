@@ -7,7 +7,6 @@ Use to record with the primesense camera RGB and depth cameras and the seek ther
 """
 import numpy as np
 import cv2
-import os
 from primesense import openni2  # , nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
@@ -109,20 +108,15 @@ fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
 video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
 ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+ir_full_vid = cv2.VideoWriter(video_location + 'ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
 depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
-
-if not os.path.exists(video_location+'ir_full_vid/'):
-    os.makedirs(video_location+'ir_full_vid/')
-if not os.path.exists(video_location+'depth_full_vid/'):
-    os.makedirs(video_location+'depth_full_vid/')
-ir_name = video_location+'ir_full_vid/ir_frame_'
-depth_name = video_location+'ir_full_vid/depth_frame_'
+depth_full_vid = cv2.VideoWriter(video_location + 'depth_full_vid.avi',
+                                 fourcc, fps, (depth_w, depth_h), 1) # save raw uncompressed videos
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
 done = False
 while not done:
-    f += 1
     k = cv2.waitKey(1) & 255
     # capture frames
     rgb_frame = get_rgb()
@@ -137,17 +131,17 @@ while not done:
     ir_frame = therm.get_8bit_frame(full_ir)
     ir_place[place_ir:place_ir + ir_h, :, :] = ir_frame
     depth_place[place_depth:place_depth + depth_h, :, :] = depth_frame
-
+    
     # display and write video
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     cv2.imshow("live", disp)
     rgb_vid.write(rgb_frame)
+    ir_full_vid.write(get_8bit(full_ir))
     ir_vid.write(ir_frame)
+    depth_full_vid.write(get_8bit(full_depth))
     depth_vid.write(depth_frame)
-    
-    np.save(ir_name+str(f)+'.bin',full_ir)
-    np.save(depth_name+str(f)+'.bin',full_depth)
 
+    f += 1
     print ("frame No.", f)
     if k == 27:  # esc key
         done = True
@@ -158,6 +152,8 @@ depth_stream.stop()
 openni2.unload()
 rgb_vid.release()
 ir_vid.release()
+ir_full_vid.release()
 depth_vid.release()
+depth_full_vid.release()
 cv2.destroyWindow("live")
 print ("Completed video generation using {} codec". format(fourcc))
