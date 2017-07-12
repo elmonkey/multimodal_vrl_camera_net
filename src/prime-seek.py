@@ -93,7 +93,7 @@ rgb_frame = get_rgb()
 dmap, depth_frame = get_depth()
 ir_frame = therm.get_frame()
 rgb_h, rgb_w, channels = rgb_frame.shape
-ir_w, ir_h = ir_frame.shape
+ir_h, ir_w = ir_frame.shape
 depth_h, depth_w, depth_channels = depth_frame.shape
 ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
 depth_place = np.zeros((depth_h, depth_w, channels), dtype='uint8')
@@ -142,8 +142,7 @@ while not done:
     depth_vid.write(depth_frame)
 
     f += 1
-#    print ("frame No.", f)
-    print(str(np.amax(full_depth/256))+'\n')
+    print ("frame No.", f)
     if k == 27:  # esc key
         done = True
 

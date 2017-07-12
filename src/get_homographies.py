@@ -91,7 +91,7 @@ rgb_frame = get_rgb()
 dmap, depth_frame = get_depth()
 ir_frame = therm.get_frame()
 rgb_h, rgb_w, channels = rgb_frame.shape
-ir_w, ir_h = ir_frame.shape
+ir_h, ir_w = ir_frame.shape
 depth_h, depth_w, depth_channels = depth_frame.shape
 ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
 depth_place = np.zeros((depth_h, depth_w, channels), dtype='uint8')
@@ -196,6 +196,12 @@ while not done:
     full_ir = cv2.flip(full_ir,1)
     full_depth = cv2.flip(full_depth,1)
     depth_frame = cv2.flip(depth_frame,1)
+    
+    # make visible
+    ir_frame = therm.get_8bit_frame(full_ir)
+    ir_place[place_ir:place_ir + ir_h, :, :] = ir_frame
+    depth_place[place_depth:place_depth + depth_h, :, :] = depth_frame
+    
     times += 1
     if times == 80: #space
         times = 0
@@ -248,7 +254,7 @@ while not done:
                     cv2.circle(full_depth,(pos1,pos2), 5, (0, 255, 255), -1)
                     cv2.imshow('depth',full_depth)
                     
-            ir_place[ir_place:ir_place+206,:,:] = ir_temp
+            ir_place[place_ir:place_ir+206,:,:] = ir_temp
             disp = np.hstack((ir_place, rgb_place))
             disp = np.uint8(disp)
             cv2.imshow('vid', disp)
@@ -274,13 +280,10 @@ while not done:
                 rgb_corners[:,0,1] = rgb_corners[:,0,1] + rgb_pts[0,1]/2
                 ir_corners[:,0,0] = ir_corners[:,0,0] + ir_pts[0,0]
                 ir_corners[:,0,1] = ir_corners[:,0,1] + ir_pts[0,1]
-                #get depth correctly
-                full_depth = full_depth.astype('uint16')
-                depth_img = (full_depth[:,:,0]<<8)+full_depth[:,:,1]
                 #get homography
                 H, mask = cv2.findHomography(rgb_corners.reshape(-1,2), ir_corners.reshape(-1,2), cv2.RANSAC, 44)
                 Hinv, mask2 = cv2.findHomography(ir_corners.reshape(-1,2), ir_corners.reshape(-1,2) ,cv2.RANSAC, 44)
-                distance = depth_img[tuple(rgb_corners[5][0].astype(int))]
+                distance = full_depth[tuple(rgb_corners[5][0].astype(int))]
                 H = np.vstack((H,[distance,0,0]))
                 Hinv = np.vstack((Hinv,[distance,0,0]))
                 num += 1
@@ -288,11 +291,6 @@ while not done:
                 np.savetxt("/home/julian/Documents/Hinvmatrix_ir_to_rgb_"+str(num)+".out", Hinv)
                 leave = True
     
-    # make visible
-    ir_frame = therm.get_8bit_frame(full_ir)
-    ir_place[place_ir:place_ir + ir_h, :, :] = ir_frame
-    depth_place[place_depth:place_depth + depth_h, :, :] = depth_frame
-
     # display and write video
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     cv2.imshow("live", disp)
@@ -303,8 +301,7 @@ while not done:
     depth_vid.write(depth_frame)
 
     f += 1
-#    print ("frame No.", f)
-    print(str(np.amax(full_depth/256))+'\n')
+    print ("frame No.", f)
     if k == 27:  # esc key
         done = True
 
