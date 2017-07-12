@@ -104,7 +104,7 @@ fps = 8.0
 # ==============================================================================
 # THE CODECS
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('H', 'F', 'Y', 'U')
+fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
 video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
 ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
