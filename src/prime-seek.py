@@ -72,9 +72,9 @@ def get_depth():
 
 def get_8bit(frame):
     h, w = frame.shape
-    output = np.zeros((h, w, 3))
-    temp1 = frame >> 8
-    temp2 = (frame << 8) >> 8
+    output = np.zeros((h, w, 3),dtype = 'uint8')
+    temp1 = frame/256
+    temp2 = frame - temp1*256
     output[:, :, 1] = temp1.astype('uint8', casting='unsafe')
     output[:, :, 0] = temp2.astype('uint8', casting='unsafe')
     output[:, :, 2] = output[:, :, 0]
@@ -93,9 +93,9 @@ rgb_frame = get_rgb()
 dmap, depth_frame = get_depth()
 ir_frame = therm.get_frame()
 rgb_h, rgb_w, channels = rgb_frame.shape
+ir_w, ir_h = ir_frame.shape
 depth_h, depth_w, depth_channels = depth_frame.shape
 ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
-ir_w, ir_h = ir_frame.shape
 depth_place = np.zeros((depth_h, depth_w, channels), dtype='uint8')
 place_ir = rgb_h / 2 - ir_h / 2
 place_depth = rgb_h / 2 - depth_h / 2
@@ -104,14 +104,14 @@ fps = 8.0
 # ==============================================================================
 # THE CODECS
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('M', 'J', 'P', 'G')
-video_location = '/home/julian/Videos/pos_1_'
+fourcc = cv2.cv.CV_FOURCC('H', 'F', 'Y', 'U')
+video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
 ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
 ir_full_vid = cv2.VideoWriter(video_location + 'ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
 depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
 depth_full_vid = cv2.VideoWriter(video_location + 'depth_full_vid.avi',
-                                 fourcc, fps, (depth_w, depth_h), 1)
+                                 fourcc, fps, (depth_w, depth_h), 1) # save raw uncompressed videos
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
@@ -122,6 +122,10 @@ while not done:
     rgb_frame = get_rgb()
     full_ir = therm.get_frame()
     full_depth, depth_frame = get_depth()
+    rgb_frame = cv2.flip(rgb_frame,1)
+    full_ir = cv2.flip(full_ir,1)
+    full_depth = cv2.flip(full_depth,1)
+    depth_frame = cv2.flip(depth_frame,1)
 
     # make visible
     ir_frame = therm.get_8bit_frame(full_ir)
@@ -130,7 +134,6 @@ while not done:
 
     # display and write video
     disp = np.hstack((depth_place, ir_place, rgb_frame))
-    disp = cv2.flip(disp, 1)
     cv2.imshow("live", disp)
     rgb_vid.write(rgb_frame)
     ir_full_vid.write(get_8bit(full_ir))
@@ -139,7 +142,8 @@ while not done:
     depth_vid.write(depth_frame)
 
     f += 1
-    print ("frame No.", f)
+#    print ("frame No.", f)
+    print(str(np.amax(full_depth/256))+'\n')
     if k == 27:  # esc key
         done = True
 
