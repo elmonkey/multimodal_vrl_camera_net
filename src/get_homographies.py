@@ -38,6 +38,7 @@ prime.set_depth_color_sync_enabled(True)
 # IMPORTANT: ALIGN DEPTH2RGB (depth wrapped to match rgb stream)
 prime.set_image_registration_mode(openni2.IMAGE_REGISTRATION_DEPTH_TO_COLOR)
 
+
 def get_rgb():
     """
     Returns numpy 3L ndarray to represent the rgb image.
@@ -46,6 +47,7 @@ def get_rgb():
                         dtype=np.uint8).reshape(240, 320, 3)
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     return rgb
+
 
 def get_depth():
     """
@@ -68,11 +70,12 @@ def get_depth():
     d4d = 255 - cv2.cvtColor(d4d, cv2.COLOR_GRAY2RGB)
     return dmap, d4d
 
+
 def get_8bit(frame):
     h, w = frame.shape
-    output = np.zeros((h, w, 3),dtype = 'uint8')
-    temp1 = frame/256
-    temp2 = frame - temp1*256
+    output = np.zeros((h, w, 3), dtype='uint8')
+    temp1 = frame / 256
+    temp2 = frame - temp1 * 256
     output[:, :, 1] = temp1.astype('uint8', casting='unsafe')
     output[:, :, 0] = temp2.astype('uint8', casting='unsafe')
     output[:, :, 2] = output[:, :, 0]
@@ -112,59 +115,70 @@ depth_full_vid = cv2.VideoWriter(video_location + 'depth_full_vid.avi',
                                  fourcc, fps, (depth_w, depth_h), 1)
 
 ###############################################################################
+
+
 def nothing(x):
     pass
+
 
 drawing = False
 ix = 0
 iy = 0
-rgb_pts = np.zeros((2,2),dtype = 'int')
+rgb_pts = np.zeros((2, 2), dtype='int')
 ir_pts = rgb_pts.copy()
-def get_rgb_pts(event,x,y,flags,param):
+
+
+def get_rgb_pts(event, x, y, flags, param):
     global drawing, ix, iy, rgb_pts
     if event == cv2.EVENT_LBUTTONDOWN:
-        rgb_pts[0,0] = x
-        rgb_pts[0,1] = y
-        ix,iy = x,y
+        rgb_pts[0, 0] = x
+        rgb_pts[0, 1] = y
+        ix, iy = x, y
         drawing = True
     elif event == cv2.EVENT_LBUTTONUP:
-        rgb_pts[1,0] = x
-        rgb_pts[1,1] = y
+        rgb_pts[1, 0] = x
+        rgb_pts[1, 1] = y
         drawing = False
     elif event == cv2.EVENT_MOUSEMOVE:
         if drawing == True:
-            cv2.rectangle(rgb_find,(ix,iy),(x,y),(0,255,0),1)
+            cv2.rectangle(rgb_find, (ix, iy), (x, y), (0, 255, 0), 1)
 
-def get_ir_pts(event,x,y,flags,param):
+
+def get_ir_pts(event, x, y, flags, param):
     global drawing, ix, iy, ir_pts
     if event == cv2.EVENT_LBUTTONDOWN:
-        ir_pts[0,0] = x
-        ir_pts[0,1] = y
-        ix,iy = x,y
+        ir_pts[0, 0] = x
+        ir_pts[0, 1] = y
+        ix, iy = x, y
         drawing = True
     elif event == cv2.EVENT_LBUTTONUP:
-        ir_pts[1,0] = x
-        ir_pts[1,1] = y
+        ir_pts[1, 0] = x
+        ir_pts[1, 1] = y
         drawing = False
     elif event == cv2.EVENT_MOUSEMOVE:
         if drawing == True:
-            cv2.rectangle(ir_find,(ix,iy),(x,y),(0,255,0),1)
+            cv2.rectangle(ir_find, (ix, iy), (x, y), (0, 255, 0), 1)
+
 
 # pattern dimensions for the grid detection and drawing
 r = 4
 c = 4
-pattern_size = (r,c) # circles grid
-def detectGrid(img): 
-    found, corners = cv2.findCirclesGrid(img,pattern_size,None, cv2.CALIB_CB_SYMMETRIC_GRID + cv2.CALIB_CB_CLUSTERING)
+pattern_size = (r, c)  # circles grid
+
+
+def detectGrid(img):
+    found, corners = cv2.findCirclesGrid(
+        img, pattern_size, None, cv2.CALIB_CB_SYMMETRIC_GRID + cv2.CALIB_CB_CLUSTERING)
     detected = False
     if found:
-        term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
+        term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        cv2.cornerSubPix(gray, corners, (5, 5), (-1, -1), term) #subpixel accuracy
+        cv2.cornerSubPix(gray, corners, (5, 5), (-1, -1), term)  # subpixel accuracy
         cv2.drawChessboardCorners(img, pattern_size, corners, found)
         detected = True
 
-    return img, corners, detected 
+    return img, corners, detected
+
 
 # set-up homography collection
 rgb_thresh = 125
@@ -174,12 +188,12 @@ ir_blur = 1
 cv2.namedWindow('vid')
 cv2.namedWindow('ir')
 cv2.namedWindow('rgb')
-cv2.createTrackbar('RGB Threshold','vid',rgb_thresh,255,nothing)
-cv2.createTrackbar('RGB Blur','vid',rgb_blur,21,nothing)
-cv2.createTrackbar('IR Threshold','vid',rgb_thresh,255,nothing)
-cv2.createTrackbar('IR Blur','vid',rgb_blur,21,nothing)
-cv2.setMouseCallback('rgb',get_rgb_pts)
-cv2.setMouseCallback('ir',get_ir_pts)
+cv2.createTrackbar('RGB Threshold', 'vid', rgb_thresh, 255, nothing)
+cv2.createTrackbar('RGB Blur', 'vid', rgb_blur, 21, nothing)
+cv2.createTrackbar('IR Threshold', 'vid', rgb_thresh, 255, nothing)
+cv2.createTrackbar('IR Blur', 'vid', rgb_blur, 21, nothing)
+cv2.setMouseCallback('rgb', get_rgb_pts)
+cv2.setMouseCallback('ir', get_ir_pts)
 ###############################################################################
 print ("Press 'esc' to terminate")
 f = 0   # frame counter
@@ -192,18 +206,18 @@ while not done:
     rgb_frame = get_rgb()
     full_ir = therm.get_frame()
     full_depth, depth_frame = get_depth()
-    rgb_frame = cv2.flip(rgb_frame,1)
-    full_ir = cv2.flip(full_ir,1)
-    full_depth = cv2.flip(full_depth,1)
-    depth_frame = cv2.flip(depth_frame,1)
-    
+    rgb_frame = cv2.flip(rgb_frame, 1)
+    full_ir = cv2.flip(full_ir, 1)
+    full_depth = cv2.flip(full_depth, 1)
+    depth_frame = cv2.flip(depth_frame, 1)
+
     # make visible
     ir_frame = therm.get_8bit_frame(full_ir)
     ir_place[place_ir:place_ir + ir_h, :, :] = ir_frame
     depth_place[place_depth:place_depth + depth_h, :, :] = depth_frame
-    
+
     times += 1
-    if times == 80: #space
+    if times == 80:  # space
         times = 0
         rgb_img = rgb_frame.copy()
         ir_img = ir_frame.copy()
@@ -227,70 +241,78 @@ while not done:
             elif g == 115:
                 ir_flag = True
         rgb_pts += rgb_pts
-        
+
         while not leave:
             g = cv2.waitKey(1) & 255
-            
+
             rgb_temp = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
-            rgb_temp = cv2.resize(rgb_temp,(640,480), interpolation = cv2.INTER_AREA) 
-            rgb_temp = cv2.GaussianBlur(rgb_temp,(rgb_blur,rgb_blur),0)
-            ret, rgb_temp = cv2.threshold(rgb_temp,rgb_thresh,255,cv2.THRESH_BINARY)
+            rgb_temp = cv2.resize(rgb_temp, (640, 480), interpolation=cv2.INTER_AREA)
+            rgb_temp = cv2.GaussianBlur(rgb_temp, (rgb_blur, rgb_blur), 0)
+            ret, rgb_temp = cv2.threshold(rgb_temp, rgb_thresh, 255, cv2.THRESH_BINARY)
             rgb_temp = cv2.cvtColor(rgb_temp, cv2.COLOR_GRAY2BGR)
-            
-            ir_temp = cv2.GaussianBlur(ir_img,(ir_blur,ir_blur),0)
-            ret, ir_temp = cv2.threshold(ir_temp,ir_thresh,255,cv2.THRESH_BINARY_INV)
-            
-            #detect pattern
-            rgb_viz, rgb_corners, rgb_detected  = detectGrid(rgb_temp[rgb_pts[0,1]:rgb_pts[1,1],rgb_pts[0,0]:rgb_pts[1,0],:])
-            ir_viz, ir_corners, ir_detected  = detectGrid(ir_temp[ir_pts[0,1]:ir_pts[1,1],ir_pts[0,0]:ir_pts[1,0],:])
-            rgb_temp[rgb_pts[0,1]:rgb_pts[1,1],rgb_pts[0,0]:rgb_pts[1,0],:] = rgb_viz
-            ir_temp[ir_pts[0,1]:ir_pts[1,1],ir_pts[0,0]:ir_pts[1,0],:] = ir_viz
-            
-            rgb_place = cv2.resize(rgb_temp, (320,240))
+
+            ir_temp = cv2.GaussianBlur(ir_img, (ir_blur, ir_blur), 0)
+            ret, ir_temp = cv2.threshold(ir_temp, ir_thresh, 255, cv2.THRESH_BINARY_INV)
+
+            # detect pattern
+            rgb_viz, rgb_corners, rgb_detected = detectGrid(
+                rgb_temp[rgb_pts[0, 1]:rgb_pts[1, 1], rgb_pts[0, 0]:rgb_pts[1, 0], :])
+            ir_viz, ir_corners, ir_detected = detectGrid(
+                ir_temp[ir_pts[0, 1]:ir_pts[1, 1], ir_pts[0, 0]:ir_pts[1, 0], :])
+            rgb_temp[rgb_pts[0, 1]:rgb_pts[1, 1], rgb_pts[0, 0]:rgb_pts[1, 0], :] = rgb_viz
+            ir_temp[ir_pts[0, 1]:ir_pts[1, 1], ir_pts[0, 0]:ir_pts[1, 0], :] = ir_viz
+
+            rgb_place = cv2.resize(rgb_temp, (320, 240))
             if rgb_detected:
                 for i in range(16):
-                    pos1 = rgb_corners[i][0][0].astype(int)/2 +rgb_pts[0,0]/2
-                    pos2 = rgb_corners[i][0][1].astype(int)/2 +rgb_pts[0,1]/2
-                    cv2.circle(full_depth,(pos1,pos2), 5, (0, 255, 255), -1)
-                    cv2.imshow('depth',full_depth)
-                    
-            ir_place[place_ir:place_ir+206,:,:] = ir_temp
+                    pos1 = rgb_corners[i][0][0].astype(int) / 2 + rgb_pts[0, 0] / 2
+                    pos2 = rgb_corners[i][0][1].astype(int) / 2 + rgb_pts[0, 1] / 2
+                    cv2.circle(full_depth, (pos1, pos2), 5, (0, 255, 255), -1)
+                    cv2.imshow('depth', full_depth)
+
+            ir_place[place_ir:place_ir + 206, :, :] = ir_temp
             disp = np.hstack((ir_place, rgb_place))
             disp = np.uint8(disp)
             cv2.imshow('vid', disp)
-            
-            rgb_thresh = cv2.getTrackbarPos('RGB Threshold','vid')
-            rgb_blur = cv2.getTrackbarPos('RGB Blur','vid')
-            ir_thresh = cv2.getTrackbarPos('IR Threshold','vid')
-            ir_blur = cv2.getTrackbarPos('IR Blur','vid')
-            
+
+            rgb_thresh = cv2.getTrackbarPos('RGB Threshold', 'vid')
+            rgb_blur = cv2.getTrackbarPos('RGB Blur', 'vid')
+            ir_thresh = cv2.getTrackbarPos('IR Threshold', 'vid')
+            ir_blur = cv2.getTrackbarPos('IR Blur', 'vid')
+
             if (rgb_blur % 2) != 1:
                 rgb_blur += 1
             if (ir_blur % 2) != 1:
                 ir_blur += 1
-            
-            if g == 27: #esc
+
+            if g == 27:  # esc
                 leave = True
             if g == 115:
-                rgb_place = cv2.resize(rgb_temp, (320,240))
-                #resize corners 
-                rgb_pts = rgb_pts/2
-                rgb_corners = rgb_corners/2
-                rgb_corners[:,0,0] = rgb_corners[:,0,0] + rgb_pts[0,0]/2
-                rgb_corners[:,0,1] = rgb_corners[:,0,1] + rgb_pts[0,1]/2
-                ir_corners[:,0,0] = ir_corners[:,0,0] + ir_pts[0,0]
-                ir_corners[:,0,1] = ir_corners[:,0,1] + ir_pts[0,1]
-                #get homography
-                H, mask = cv2.findHomography(rgb_corners.reshape(-1,2), ir_corners.reshape(-1,2), cv2.RANSAC, 44)
-                Hinv, mask2 = cv2.findHomography(ir_corners.reshape(-1,2), ir_corners.reshape(-1,2) ,cv2.RANSAC, 44)
+                rgb_place = cv2.resize(rgb_temp, (320, 240))
+                # resize corners
+                rgb_pts = rgb_pts / 2
+                rgb_corners = rgb_corners / 2
+                rgb_corners[:, 0, 0] = rgb_corners[:, 0, 0] + rgb_pts[0, 0] / 2
+                rgb_corners[:, 0, 1] = rgb_corners[:, 0, 1] + rgb_pts[0, 1] / 2
+                ir_corners[:, 0, 0] = ir_corners[:, 0, 0] + ir_pts[0, 0]
+                ir_corners[:, 0, 1] = ir_corners[:, 0, 1] + ir_pts[0, 1]
+                # get homography
+                H, mask = cv2.findHomography(rgb_corners.reshape(-1, 2),
+                                             ir_corners.reshape(-1, 2), cv2.RANSAC, 44)
+                Hinv, mask2 = cv2.findHomography(
+                    ir_corners.reshape(-1, 2), ir_corners.reshape(-1, 2), cv2.RANSAC, 44)
                 distance = full_depth[tuple(rgb_corners[5][0].astype(int))]
-                H = np.vstack((H,[distance,0,0]))
-                Hinv = np.vstack((Hinv,[distance,0,0]))
+                H = np.hstack((H, [[0], [0], [0]]))
+                for i in range(16):
+                    distance[i] = full_depth[tuple(rgb_corners[i][0].astype(int))]
+                distance = np.reshape(distance, (4, 4))
+                H = np.vstack((H, distance))
+                Hinv = np.vstack((Hinv, [distance, 0, 0]))
                 num += 1
-                np.savetxt("/home/julian/Documents/Hmatrix_rgb_to_ir_"+str(num)+".out", H)
-                np.savetxt("/home/julian/Documents/Hinvmatrix_ir_to_rgb_"+str(num)+".out", Hinv)
+                np.savetxt("/home/julian/Documents/Hmatrix_rgb_to_ir_" + str(num) + ".out", H)
+                np.savetxt("/home/julian/Documents/Hinvmatrix_ir_to_rgb_" + str(num) + ".out", Hinv)
                 leave = True
-    
+
     # display and write video
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     cv2.imshow("live", disp)

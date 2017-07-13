@@ -136,11 +136,11 @@ class thermal_camera():
                 frame = abs((recieved - self.ffc_frame) + self.offset)
                 frame = self.remove_dead_pixels(frame)
                 self.full_frame = frame[:, 0:-2]
-                self.full_frame = np.rot90(cv2.flip(self.full_frame, 0),3)
+                self.full_frame = np.rot90(cv2.flip(self.full_frame, 0), 3)
                 return self.full_frame
 
     def get_8bit_frame(self, frame):
         output = frame >> 2
-        output[output>=4096] = 4096-1
+        output[output >= 4096] = 4096 - 1
         output = cv2.cvtColor(output.astype('uint8'), cv2.COLOR_GRAY2BGR)
         return output
