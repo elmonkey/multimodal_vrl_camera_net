@@ -8,6 +8,7 @@ Use to record with the primesense camera RGB and depth cameras and the seek ther
 import numpy as np
 import cv2
 import os
+import shutil
 from primesense import openni2  # , nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
@@ -71,18 +72,6 @@ def get_depth():
     return dmap, d4d
 
 
-def get_8bit(frame):
-    h, w = frame.shape
-    output = np.zeros((h, w, 3), dtype='uint8')
-    temp1 = frame / 256
-    temp2 = frame - temp1 * 256
-    output[:, :, 1] = temp1.astype('uint8', casting='unsafe')
-    output[:, :, 0] = temp2.astype('uint8', casting='unsafe')
-    output[:, :, 2] = output[:, :, 0]
-    output = output.astype('uint8')
-    return output
-
-
 # ==============================================================================
 # Video .avi output setup
 # ==============================================================================
@@ -111,10 +100,12 @@ rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, r
 ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
 depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
 
-if not os.path.exists(video_location + 'ir_full_vid/'):
-    os.makedirs(video_location + 'ir_full_vid/')
-if not os.path.exists(video_location + 'depth_full_vid/'):
-    os.makedirs(video_location + 'depth_full_vid/')
+if os.path.exists(video_location + 'ir_full_vid/'):
+    shutil.rmtree(video_location + 'ir_full_vid/')
+os.makedirs(video_location + 'depth_full_vid/')
+if os.path.exists(video_location + 'depth_full_vid/'):
+    shutil.rmtree(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'depth_full_vid/')
 ir_name = video_location + 'ir_full_vid/ir_frame_'
 depth_name = video_location + 'depth_full_vid/depth_frame_'
 

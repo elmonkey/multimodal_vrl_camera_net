@@ -7,9 +7,7 @@ Created on Mon Jul 10 16:55:46 2017
 import numpy as np
 
 
-class get_pos:
-    buff = 150  # mm
-
+class get_pos():
     def get_homography(self, distance, space):
         if space == 'rgb':
             h_check = self.h_rgb
@@ -17,7 +15,7 @@ class get_pos:
         elif space == 'ir':
             h_check = self.h_ir
         for i in range(self.num_homographies):
-            if ((self.dist[i] + self.buff) >= distance):
+            if (self.dist[i] >= distance):
                 h = h_check[:, :, i]
                 h = self.h_ir[:, :, -1]
         return h
@@ -36,7 +34,7 @@ class get_pos:
         out = [new_pos[0], new_pos[1]] / new_pos[2]
         return out
 
-    def __init__(self, num_homographies):
+    def __init__(self, num_homographies=5):
         self.num_homographies = num_homographies
         self.h_rgb = np.zeros((3, 3, self.num_homographies))
         self.h_ir = np.zeros((3, 3, self.num_homographies))

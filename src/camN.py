@@ -7,12 +7,14 @@ Use to record with the primesense camera RGB and depth cameras and the seek ther
 """
 import numpy as np
 import cv2
+import time
+import os
+import shutil
+import pandas as pd
+import client
 from primesense import openni2  # , nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
-import time
-import pandas as pd
-import client
 
 # Device number
 devN = 1
@@ -144,13 +146,20 @@ fps = 8.0
 # ==============================================================================
 # Video Recording set-up
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('M', 'J', 'P', 'G')
+fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
+video_location = '/home/julian/Videos/'
+rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
+ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
+depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
 
-rgb_vid = cv2.VideoWriter('Videos/rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
-ir_vid = cv2.VideoWriter('Videos/ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-ir_full_vid = cv2.VideoWriter('Videos/ir_full_vid.avi', fourcc, fps, (ir_w, ir_h), 1)
-depth_vid = cv2.VideoWriter('Videos/depth_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
-depth_full_vid = cv2.VideoWriter('Videos/depth_full_vid.avi', fourcc, fps, (depth_w, depth_h), 1)
+if os.path.exists(video_location + 'ir_full_vid/'):
+    shutil.rmtree(video_location + 'ir_full_vid/')
+os.makedirs(video_location + 'depth_full_vid/')
+if os.path.exists(video_location + 'depth_full_vid/'):
+    shutil.rmtree(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'depth_full_vid/')
+ir_name = video_location + 'ir_full_vid/ir_frame_'
+depth_name = video_location + 'depth_full_vid/depth_frame_'
 
 f = 0   # frame counter
 tic = time.time()
@@ -174,6 +183,7 @@ while not done:
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     disp = cv2.flip(disp, 1)
     cv2.imshow("live", disp)
+    f += 1
 
     run_time = time.time() - tic
 
@@ -188,27 +198,27 @@ while not done:
     # === check synchronization type
     if synctype == 'strict':
         if server_response == 'save':
+            f += 1
             rgb_vid.write(rgb_frame)
-            ir_full_vid.write(full_ir)
             ir_vid.write(ir_frame)
-            depth_full_vid.write(full_depth)
             depth_vid.write(depth_frame)
+            np.save(ir_name + str(f), full_ir)
+            np.save(depth_name + str(f), full_depth)
             # Write Datarows
             df.loc[c] = [f, time.strftime("%a, %d %b %Y %H:%M:%S +0000",
                                           time.localtime()), server_time]
-            f += 1
             c += 1
             print ("frame No. recorded ", f)
     elif synctype == 'relaxed':
+        f += 1
         rgb_vid.write(rgb_frame)
-        ir_full_vid.write(full_ir)
         ir_vid.write(ir_frame)
-        depth_full_vid.write(full_depth)
         depth_vid.write(depth_frame)
+        np.save(ir_name + str(f), full_ir)
+        np.save(depth_name + str(f), full_depth)
 
         # Write Datarows
         df.loc[c] = [f, run_time, server_time]
-        f += 1
         c += 1
     else:
         print "synchronization type unknown"
@@ -222,9 +232,7 @@ depth_stream.stop()
 openni2.unload()
 rgb_vid.release()
 ir_vid.release()
-ir_full_vid.release()
 depth_vid.release()
-depth_full_vid.release()
 clientConnectThread.update_command("close")
 cv2.destroyWindow("live")
 print ("Completed video generation using {} codec". format(fourcc))
