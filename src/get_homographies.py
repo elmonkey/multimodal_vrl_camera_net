@@ -7,7 +7,6 @@ Use to record with the primesense camera RGB and depth cameras and the seek ther
 """
 import numpy as np
 import cv2
-import time
 from primesense import openni2  # , nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
@@ -263,17 +262,17 @@ while not done:
             ir_temp[ir_pts[0, 1]:ir_pts[1, 1], ir_pts[0, 0]:ir_pts[1, 0], :] = ir_viz
 
             rgb_place = cv2.resize(rgb_temp, (320, 240))
-            if rgb_detected:
-                for i in range(16):
-                    pos1 = rgb_corners[i][0][0].astype(int) / 2 + rgb_pts[0, 0] / 2
-                    pos2 = rgb_corners[i][0][1].astype(int) / 2 + rgb_pts[0, 1] / 2
-                    cv2.circle(full_depth, (pos1, pos2), 5, (0, 255, 255), -1)
-                    cv2.imshow('depth', full_depth)
 
             ir_place[place_ir:place_ir + 206, :, :] = ir_temp
             disp = np.hstack((ir_place, rgb_place))
             disp = np.uint8(disp)
             cv2.imshow('vid', disp)
+            if rgb_detected:
+                for i in range(16):
+                    pos1 = int(rgb_corners[i, 0, 0] / 2 + rgb_pts[0, 0] / 2)
+                    pos2 = int(rgb_corners[i, 0, 1] / 2 + rgb_pts[0, 1] / 2)
+                    cv2.circle(depth_frame, (pos1, pos2), 3, (0, 0, 255), -1)
+            cv2.imshow('depth', depth_frame)
 
             rgb_thresh = cv2.getTrackbarPos('RGB Threshold', 'vid')
             rgb_blur = cv2.getTrackbarPos('RGB Blur', 'vid')
@@ -287,27 +286,29 @@ while not done:
 
             if g == 27:  # esc
                 leave = True
-            if g == 115:
-                rgb_place = cv2.resize(rgb_temp, (320, 240))
+            if ((g == 115) & rgb_detected & ir_detected):
                 # resize corners
                 rgb_pts = rgb_pts / 2
                 rgb_corners = rgb_corners / 2
-                rgb_corners[:, 0, 0] = rgb_corners[:, 0, 0] + rgb_pts[0, 0] / 2
-                rgb_corners[:, 0, 1] = rgb_corners[:, 0, 1] + rgb_pts[0, 1] / 2
+                rgb_corners[:, 0, 0] = rgb_corners[:, 0, 0] + rgb_pts[0, 0]
+                rgb_corners[:, 0, 1] = rgb_corners[:, 0, 1] + rgb_pts[0, 1]
                 ir_corners[:, 0, 0] = ir_corners[:, 0, 0] + ir_pts[0, 0]
                 ir_corners[:, 0, 1] = ir_corners[:, 0, 1] + ir_pts[0, 1]
                 # get homography
                 H, mask = cv2.findHomography(rgb_corners.reshape(-1, 2),
                                              ir_corners.reshape(-1, 2), cv2.RANSAC, 44)
                 Hinv, mask2 = cv2.findHomography(
-                    ir_corners.reshape(-1, 2), ir_corners.reshape(-1, 2), cv2.RANSAC, 44)
-                distance = full_depth[tuple(rgb_corners[5][0].astype(int))]
+                    ir_corners.reshape(-1, 2), rgb_corners.reshape(-1, 2), cv2.RANSAC, 44)
                 H = np.hstack((H, [[0], [0], [0]]))
+                Hinv = np.hstack((Hinv, [[0], [0], [0]]))
+                distance = np.zeros((16, 1), dtype='uint16')
                 for i in range(16):
-                    distance[i] = full_depth[tuple(rgb_corners[i][0].astype(int))]
+                    pos1 = int(rgb_corners[i, 0, 1])
+                    pos2 = int(rgb_corners[i, 0, 0])
+                    distance[i] = np.average(full_depth[pos1 - 3:pos1 + 3, pos2 - 3:pos2 + 3])
                 distance = np.reshape(distance, (4, 4))
                 H = np.vstack((H, distance))
-                Hinv = np.vstack((Hinv, [distance, 0, 0]))
+                Hinv = np.vstack((Hinv, distance))
                 num += 1
                 np.savetxt("/home/julian/Documents/Hmatrix_rgb_to_ir_" + str(num) + ".out", H)
                 np.savetxt("/home/julian/Documents/Hinvmatrix_ir_to_rgb_" + str(num) + ".out", Hinv)
