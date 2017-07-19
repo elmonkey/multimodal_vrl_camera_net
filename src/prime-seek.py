@@ -15,7 +15,7 @@ from seek_camera import thermal_camera
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Install/OpenNI2-x64/Redist'
+dist = '/home/julian/Install/OpenNI2/OpenNI2-x64/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -102,7 +102,7 @@ depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (dept
 
 if os.path.exists(video_location + 'ir_full_vid/'):
     shutil.rmtree(video_location + 'ir_full_vid/')
-os.makedirs(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'ir_full_vid/')
 if os.path.exists(video_location + 'depth_full_vid/'):
     shutil.rmtree(video_location + 'depth_full_vid/')
 os.makedirs(video_location + 'depth_full_vid/')

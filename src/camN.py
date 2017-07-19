@@ -154,7 +154,7 @@ depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (dept
 
 if os.path.exists(video_location + 'ir_full_vid/'):
     shutil.rmtree(video_location + 'ir_full_vid/')
-os.makedirs(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'ir_full_vid/')
 if os.path.exists(video_location + 'depth_full_vid/'):
     shutil.rmtree(video_location + 'depth_full_vid/')
 os.makedirs(video_location + 'depth_full_vid/')
