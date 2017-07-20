@@ -9,15 +9,15 @@ import numpy as np
 import cv2
 import os
 import shutil
-from primesense import openni2  # , nite2
+from primesense import openni2 #, nite2
 from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Install/OpenNI2-x64/Redist'
-# Initialize openni and check
-openni2.initialize(dist)
+openni_dist = '/home/julian/Install/OpenNI2-x64/Redist'
+# Initialize openni and checkistist
+openni2.initialize(openni_dist)
 if (openni2.is_initialized()):
     print "openNI2 initialized"
 else:
@@ -102,12 +102,18 @@ depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (dept
 
 if os.path.exists(video_location + 'ir_full_vid/'):
     shutil.rmtree(video_location + 'ir_full_vid/')
-os.makedirs(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'ir_full_vid/')
 if os.path.exists(video_location + 'depth_full_vid/'):
     shutil.rmtree(video_location + 'depth_full_vid/')
 os.makedirs(video_location + 'depth_full_vid/')
 ir_name = video_location + 'ir_full_vid/ir_frame_'
 depth_name = video_location + 'depth_full_vid/depth_frame_'
+
+# 'warm-up' cameras
+for i in range(80):
+    rgb_frame = get_rgb()
+    full_ir = therm.get_frame()
+    full_depth, depth_frame = get_depth()
 
 print ("Press 'esc' to terminate")
 f = 0   # frame counter

@@ -136,7 +136,7 @@ dmap, depth_frame = get_depth()
 ir_frame = therm.get_frame()
 rgb_h, rgb_w, channels = rgb_frame.shape
 depth_h, depth_w, depth_channels = depth_frame.shape
-ir_w, ir_h = ir_frame.shape
+ir_h, ir_w = ir_frame.shape
 ir_place = np.zeros((rgb_h, ir_w, channels), dtype='uint8')
 depth_place = np.zeros((depth_h, depth_w, channels), dtype='uint8')
 place_ir = rgb_h / 2 - ir_h / 2
@@ -154,16 +154,25 @@ depth_vid = cv2.VideoWriter(video_location + 'depth_vid.avi', fourcc, fps, (dept
 
 if os.path.exists(video_location + 'ir_full_vid/'):
     shutil.rmtree(video_location + 'ir_full_vid/')
-os.makedirs(video_location + 'depth_full_vid/')
+os.makedirs(video_location + 'ir_full_vid/')
 if os.path.exists(video_location + 'depth_full_vid/'):
     shutil.rmtree(video_location + 'depth_full_vid/')
 os.makedirs(video_location + 'depth_full_vid/')
 ir_name = video_location + 'ir_full_vid/ir_frame_'
 depth_name = video_location + 'depth_full_vid/depth_frame_'
 
+# 'warm-up' cameras
+for i in range(80):
+    rgb_frame = get_rgb()
+    full_ir = therm.get_frame()
+    full_depth, depth_frame = get_depth()
+
 f = 0   # frame counter
+f_count = 0
 tic = time.time()
 start_t = tic
+rec_lim = 7
+rec = False
 
 print ("Press 'esc' to terminate")
 done = False
@@ -183,21 +192,28 @@ while not done:
     disp = np.hstack((depth_place, ir_place, rgb_frame))
     disp = cv2.flip(disp, 1)
     cv2.imshow("live", disp)
-    f += 1
 
     run_time = time.time() - tic
-
-    # Poll the server:
-    clientConnectThread.update_command("check")
-    response = clientConnectThread.get_command()
-    if "_" in response:
-        server_response, server_time = response.split("_")
-    else:
-        server_reponse = response
+    if (not rec) or (f_count == (rec_lim - 1)):
+        # Poll the server:
+        clientConnectThread.update_command("ready")
+        response = clientConnectThread.get_command()
+        if "_" in response:
+            server_response, server_time = response.split("_")
+        else:
+            server_response = response
+    elif (f_count == rec_lim):
+        rec = False
+    
+    if (server_response == 'record'):
+        rec = True
+        server_response = "wait"
+        f_count = 0
 
     # === check synchronization type
     if synctype == 'strict':
-        if server_response == 'save':
+        if rec:
+            f_count += 1
             f += 1
             rgb_vid.write(rgb_frame)
             ir_vid.write(ir_frame)

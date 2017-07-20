@@ -29,6 +29,8 @@ conc = True  # flag for connecting
 disc = False  # flag to disconnect
 done = False  # flag to terminate
 save = False  # flag to save
+ready = []
+start = []
 
 # Add/Remove devices to/from dev_list
 dev_list = ['dev1', 'dev2']  # Allowed devices , 'dev3', 'dev4'
@@ -46,7 +48,8 @@ dev_dict = {'dev1': {'PORT': 50007},
 roll = {}
 for d in dev_list:
     roll[d] = 'n'
-
+    ready.append(False)
+    start.append(False)
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
     """
@@ -61,7 +64,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     """
 
     def handle(self):
-        global done, roll, conc, disc, terminate, devs, save
+        global done, roll, conc, disc, terminate, devs, save, ready, start
 
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip().split(" ")
@@ -84,14 +87,27 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
             if not terminate:
 
                 # --- Connect the device <dev1#> "connect" command
-                if conc and self.cmd.lower() == "connect":
+                if self.cmd.lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
                         self.msg = "dev{} ready_{}".format(self.devid, self.tic)
                     else:
                         devs.append(dev)
                         self.msg = "dev{} connected_{}".format(self.devid, self.tic)
-
+                        
+                # --- Ready to record next 10 frames
+                elif self.cmd.lower() == "ready":
+                    ready[int(self.devid) - 1] = True
+                    if (all(check == True for check in ready)) and (dev in devs):
+                        start[int(self.devid) - 1] = True
+                        self.msg = "record_{}".format(self.tic)
+                        if (all(check == True for check in start)):
+                            for i in range(len(start)):
+                                ready[i] = False
+                                start[i] = False
+                    else:
+                        self.msg = "wait_{}".format(self.tic)
+                    
                 # --- Get server time stamp: laxed synchronization
                 elif self.cmd.lower() == "sync":  # get server time stamp
                     self.msg = "sync_{}".format(self.tic)
@@ -111,6 +127,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                 elif self.cmd.lower() == "close":
                     print "Terminating all threads"
                     terminate_list.remove(dev)
+                    devs.remove(dev)
                     self.msg = "close_{}".format(self.tic)
                     done = True
                     terminate = True
