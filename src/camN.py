@@ -21,7 +21,7 @@ devN = 2
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Install/OpenNI2-x64/Redist'
+dist = '/home/julian/Install/OpenNI2/OpenNI2-x64/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -171,7 +171,7 @@ ready = True
 new = True
 rec_time = []
 
-print ("Press 'es c' to terminate")
+print ("Press 'esc' to terminate")
 done = False
 while not done:
     k = cv2.waitKey(1) & 255
@@ -209,6 +209,7 @@ while not done:
     elif server_response == "stop":
         rec = False
         ready = False
+        new = False
         # release the previous videos recorded
         rgb_vid.release()
         ir_vid.release()
@@ -301,6 +302,7 @@ timefile = open(video_location + 'frame_times_' + str(vid_num) + '.txt', 'w')
 for value in rec_time:
     timefile.write(str(value) + "/n")
 timefile.close()
-clientConnectThread.update_command("close")
+clientConnectThread.update_command("close_")
 cv2.destroyWindow("live")
+time.sleep(2)
 print ("Completed video generation using {} codec". format(fourcc))

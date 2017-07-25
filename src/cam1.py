@@ -106,7 +106,7 @@ def talk2server(cmd='connect', devN=1):
 
 # TCP communication
 # Start the client thread:
-clientConnectThread = client.ClientConnect("connect", "{}".format(devN))
+clientConnectThread = client.ClientConnect("connect_", "{}".format(devN))
 clientConnectThread.setDaemon(True)
 clientConnectThread.start()  # launching thread
 # time.sleep(1)
@@ -172,7 +172,7 @@ new = True
 action = ""
 rec_time = []
 
-print ("Press 'es c' to terminate")
+print ("Press 'esc' to terminate")
 done = False
 while not done:
     k = cv2.waitKey(1) & 255
@@ -293,8 +293,10 @@ while not done:
     elif k == 32: # space key
         if rec: # toggle recording
             action = "stop"
-        else:
+        elif new:
             action = "record"
+        else:
+            action = "wait"
     elif k == 114: # r key
         action = "restart"
     elif k == 110: # n key
@@ -313,4 +315,5 @@ for value in rec_time:
 timefile.close()
 clientConnectThread.update_command("close")
 cv2.destroyWindow("live")
+time.sleep(2)
 print ("Completed video generation using {} codec". format(fourcc))

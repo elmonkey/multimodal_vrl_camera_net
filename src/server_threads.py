@@ -29,11 +29,7 @@ conc = True  # flag for connecting
 disc = False  # flag to disconnect
 done = False  # flag to terminate
 save = False  # flag to save
-recording = False
-new = False
-restart = False
 close = False
-stop = False
 action = ""
 ready = []
 
@@ -69,7 +65,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     """
 
     def handle(self):
-        global done, roll, conc, disc, terminate, devs, save, recording, new, restart, close, action, ready
+        global done, roll, conc, disc, terminate, devs, save, close, action, ready
 
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip().split(" ")
@@ -92,7 +88,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
             if not terminate:
 
                 # --- Connect the device <dev1#> "connect" command
-                if conc and self.cmd[0].lower() == "connect":
+                if self.cmd[0].lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
                         self.msg = "dev{} ready_{}".format(self.devid, self.tic)
@@ -120,6 +116,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                     print "Terminating all threads"
                     self.msg = "close_{}".format(self.tic)
                     close = True
+                    ready[int(self.devid) - 1] = False
                 
                 # --- Tell the node what to do
                 elif self.cmd[0].lower() == "info":
@@ -151,7 +148,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                         self.msg = "close_{}".format(self.tic)
                 
                 # --- Manage commands from controling device  
-                elif (int(self.devid) == 1):
+                if (int(self.devid) == 1):
                     if self.cmd[1].lower() == "record":
                         action = "record"
                         self.msg = "record_{}".format(self.tic)
