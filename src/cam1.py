@@ -203,13 +203,16 @@ while not done:
         server_response = response
 
     if server_response == "record":
+        print "Starting to record"
         rec = True
         ready = True
         new = False
         
     elif server_response == "stop":
+        print "Stopped recording"
         rec = False
         ready = False
+        new = False
         # release the previous videos recorded
         rgb_vid.release()
         ir_vid.release()
@@ -222,6 +225,7 @@ while not done:
     elif server_response == "restart":
         # release the videos to be rerecorded
         if not new:
+            print "Restarting recording"
             rgb_vid.release()
             ir_vid.release()
             depth_vid.release()
@@ -247,6 +251,7 @@ while not done:
     elif server_response == "new":
         # release the previous videos recorded
         if not new:
+            print "Starting new recording"
             rgb_vid.release()
             ir_vid.release()
             depth_vid.release()
@@ -313,7 +318,7 @@ timefile = open(video_location + 'frame_times_' + str(vid_num) + '.txt', 'w')
 for value in rec_time:
     timefile.write(str(value) + "/n")
 timefile.close()
-clientConnectThread.update_command("close")
+clientConnectThread.update_command("close_")
 cv2.destroyWindow("live")
 time.sleep(2)
 print ("Completed video generation using {} codec". format(fourcc))

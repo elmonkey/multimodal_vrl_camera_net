@@ -91,6 +91,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                 if self.cmd[0].lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
+                        close = False
                         self.msg = "dev{} ready_{}".format(self.devid, self.tic)
                     else:
                         devs.append(dev)
