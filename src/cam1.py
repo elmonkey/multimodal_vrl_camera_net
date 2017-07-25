@@ -203,16 +203,19 @@ while not done:
         server_response = response
 
     if server_response == "record":
-        print "Starting to record"
+        if f == 0:
+            print "Starting to record"
         rec = True
         ready = True
         new = False
         
     elif server_response == "stop":
-        print "Stopped recording"
+        if f != 0:
+            print "Stopped recording"
         rec = False
         ready = False
         new = False
+        f = 0
         # release the previous videos recorded
         rgb_vid.release()
         ir_vid.release()
