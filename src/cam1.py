@@ -17,7 +17,7 @@ from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
 
 # Device number
-devN = 2
+devN = 1
 
 #############################################################################
 # set-up primesense camera
@@ -169,6 +169,7 @@ tic = time.time()
 rec = False
 ready = True
 new = True
+action = ""
 rec_time = []
 
 print ("Press 'es c' to terminate")
@@ -192,9 +193,9 @@ while not done:
 
     # Poll the server:
     if ready:
-        clientConnectThread.update_command("ready")
+        clientConnectThread.update_command("ready_" + action)
     else:
-        clientConnectThread.update_command("info")
+        clientConnectThread.update_command("info_" + action)
     response = clientConnectThread.get_command()
     if "_" in response:
         server_response, server_time = response.split("_")
@@ -289,6 +290,15 @@ while not done:
 
     if k == 27:  # esc key
         done = True
+    elif k == 32: # space key
+        if rec: # toggle recording
+            action = "stop"
+        else:
+            action = "record"
+    elif k == 114: # r key
+        action = "restart"
+    elif k == 110: # n key
+        action = "new"
 
 # release resources and destoy windows
 rgb_stream.stop()
