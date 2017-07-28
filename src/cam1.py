@@ -142,7 +142,10 @@ fps = 8.0
 # ==============================================================================
 # Video Recording set-up
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
+if cv2.__version__ == '3.2.0':
+    fourcc = cv2.VideoWriter_fourcc('M', 'P', 'E', 'G')
+else:
+    fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
 vid_num = 1
 video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid_' + str(vid_num) + '.avi', fourcc, fps, (rgb_w, rgb_h), 1)
@@ -192,7 +195,7 @@ while not done:
     cv2.imshow("live", disp)
 
     # Poll the server:
-    if ready:
+    if ready: #send status and command
         clientConnectThread.update_command("ready_" + action)
     else:
         clientConnectThread.update_command("info_" + action)
@@ -202,6 +205,7 @@ while not done:
     else:
         server_response = response
 
+    # kind of works like a FSM
     if server_response == "record":
         if f == 0:
             print "Starting to record"
@@ -226,8 +230,8 @@ while not done:
         timefile.close()
         
     elif server_response == "restart":
-        # release the videos to be rerecorded
         if not new:
+            # release the videos to be rerecorded
             print "Restarting recording"
             rgb_vid.release()
             ir_vid.release()
@@ -252,8 +256,8 @@ while not done:
             depth_name = video_location + 'depth_full_vid_' + str(vid_num) + '/depth_frame_'
         
     elif server_response == "new":
-        # release the previous videos recorded
         if not new:
+            # release the previous videos recorded
             print "Starting new recording"
             rgb_vid.release()
             ir_vid.release()
@@ -295,7 +299,8 @@ while not done:
         np.save(depth_name + str(f), full_depth)
         rec_time.append(server_time)
         print ("frame No. recorded ", f)
-
+    
+    # get commands from usre input
     if k == 27:  # esc key
         done = True
     elif k == 32: # space key

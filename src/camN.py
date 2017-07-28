@@ -17,7 +17,7 @@ from primesense import _openni2 as c_api
 from seek_camera import thermal_camera
 
 # Device number
-devN = 2
+devN = 2 # 3
 
 #############################################################################
 # set-up primesense camera
@@ -117,9 +117,6 @@ if "_" in response:
     server_response, server_time = response.split("_")
 else:
     server_reponse = response
-# Create a pandas dataframe to hold the information (index starts at 1)
-cols = ["frameN", "localtime", "servertime"]
-df = pd.DataFrame(columns=cols)
 # ==============================================================================
 # Video .avi output setup
 # ==============================================================================
@@ -142,7 +139,10 @@ fps = 8.0
 # ==============================================================================
 # Video Recording set-up
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
+if cv2.__version__ == '3.2.0':
+    fourcc = cv2.VideoWriter_fourcc('M', 'P', 'E', 'G')
+else:
+    fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
 vid_num = 1
 video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid_' + str(vid_num) + '.avi', fourcc, fps, (rgb_w, rgb_h), 1)
@@ -208,6 +208,7 @@ while not done:
         ready = True
         new = False
         
+    # FSM to see what needs to be done
     elif server_response == "stop":
         if f != 0:
             print "Stopped recording"
@@ -225,8 +226,8 @@ while not done:
         timefile.close()
         
     elif server_response == "restart":
-        # release the videos to be rerecorded
         if not new:
+            # release the videos to be rerecorded
             print "Restarting recording"
             rgb_vid.release()
             ir_vid.release()
@@ -251,8 +252,8 @@ while not done:
             depth_name = video_location + 'depth_full_vid_' + str(vid_num) + '/depth_frame_'
         
     elif server_response == "new":
-        # release the previous videos recorded
         if not new:
+            # release the previous videos recorded
             print "Starting new recording"
             rgb_vid.release()
             ir_vid.release()

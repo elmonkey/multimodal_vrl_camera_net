@@ -14,7 +14,7 @@ from seek_camera import thermal_camera
 
 #############################################################################
 # set-up primesense camera
-dist = '/home/julian/Install/OpenNI2-x64/Redist'
+dist = '/home/julian/lib/OpenNI-x64/Redist'
 # Initialize openni and check
 openni2.initialize(dist)
 if (openni2.is_initialized()):
@@ -105,7 +105,10 @@ fps = 8.0
 # ==============================================================================
 # THE CODECS
 # ==============================================================================
-fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
+if cv2.__version__ == '3.2.0':
+    fourcc = cv2.VideoWriter_fourcc('M', 'P', 'E', 'G')
+else:
+    fourcc = cv2.cv.CV_FOURCC('M', 'P', 'E', 'G')
 video_location = '/home/julian/Videos/'
 rgb_vid = cv2.VideoWriter(video_location + 'rgb_vid.avi', fourcc, fps, (rgb_w, rgb_h), 1)
 ir_vid = cv2.VideoWriter(video_location + 'ir_vid.avi', fourcc, fps, (ir_w, ir_h), 1)

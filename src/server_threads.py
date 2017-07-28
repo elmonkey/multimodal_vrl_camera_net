@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Created on Wed Dec  3 14:34:13 2014
+Created on Wed Jul 28 14:34:13 2017
 
 TCP Server Example
 
@@ -29,9 +29,9 @@ conc = True  # flag for connecting
 disc = False  # flag to disconnect
 done = False  # flag to terminate
 save = False  # flag to save
-close = False
-action = ""
-ready = []
+close = False # flag to know if everything is closed
+action = "" # flag to discribe what action needs to be preformed
+ready = [] # flag to ensure that all nodes are working together
 
 
 # Add/Remove devices to/from dev_list
@@ -119,7 +119,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                     close = True
                     ready[int(self.devid) - 1] = False
                 
-                # --- Tell the node what to do
+                # --- Tell the node what to do, directions when not ready
                 elif self.cmd[0].lower() == "info":
                     ready[int(self.devid) - 1] = False
                     if action == "new":
@@ -131,7 +131,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                     else:
                         self.msg = "wait_{}".format(self.tic)
                 
-                # --- Tell the node what to do
+                # --- Tell the node what to do, directions when ready
                 elif self.cmd[0].lower() == "ready":
                     ready[int(self.devid) - 1] = True
                     if action == "record":
@@ -148,7 +148,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                     elif close == True:
                         self.msg = "close_{}".format(self.tic)
                 
-                # --- Manage commands from controling device  
+                # --- Manage commands from controling device, controls
                 if (int(self.devid) == 1):
                     if self.cmd[1].lower() == "record":
                         action = "record"
