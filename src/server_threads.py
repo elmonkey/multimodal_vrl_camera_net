@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Created on Wed Dec  3 14:34:13 2014
+Created on Wed Jul 28 14:34:13 2017
 
 TCP Server Example
 
@@ -9,7 +9,7 @@ ref:
     
 Open a terminal, set server IP, and run the server
 ctrl+alt+t
-sudo ifconfig eth0 192.168.0.11 netmask 255.255.255.0
+sudo ifconfig eth0 192.168.0.12 netmask 255.255.255.0
 python server_threads.py
 
 NOTE:
@@ -29,9 +29,13 @@ conc = True  # flag for connecting
 disc = False  # flag to disconnect
 done = False  # flag to terminate
 save = False  # flag to save
+close = False # flag to know if everything is closed
+action = "" # flag to discribe what action needs to be preformed
+ready = [] # flag to ensure that all nodes are working together
+
 
 # Add/Remove devices to/from dev_list
-dev_list = ['dev1', 'dev2', 'dev3', 'dev4']  # Allowed devices
+dev_list = ['dev1', 'dev2']  # Allowed devices , 'dev3', 'dev4'
 
 terminate_list = dev_list[:]
 terminate = False  # termiantion flag
@@ -39,13 +43,13 @@ terminate = False  # termiantion flag
 
 dev_dict = {'dev1': {'PORT': 50007},
             'dev2': {'PORT': 50008},
-            'dev3': {'PORT': 50009},
-            'dev4': {'PORT': 50010}
+            #            'dev3': {'PORT': 50009},
             }
 
 roll = {}
 for d in dev_list:
     roll[d] = 'n'
+    ready.append(False)
 
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
@@ -61,12 +65,12 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     """
 
     def handle(self):
-        global done, roll, conc, disc, terminate, devs, save
+        global done, roll, conc, disc, terminate, devs, save, close, action, ready
 
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip().split(" ")
         self.devid = self.data[0]
-        self.cmd = self.data[1]
+        self.cmd = self.data[1].split("_")
         self.msg = ""
         self.tic = time.time()  # server time tic
         self.time = strftime("%a, %d %b %Y %H:%M:%S +0000", localtime())
@@ -84,36 +88,80 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
             if not terminate:
 
                 # --- Connect the device <dev1#> "connect" command
-                if conc and self.cmd.lower() == "connect":
+                if self.cmd[0].lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
+                        close = False
                         self.msg = "dev{} ready_{}".format(self.devid, self.tic)
                     else:
                         devs.append(dev)
                         self.msg = "dev{} connected_{}".format(self.devid, self.tic)
 
-                # --- Get server time stamp: laxed synchronization
-                elif self.cmd.lower() == "sync":  # get server time stamp
-                    self.msg = "sync_{}".format(self.tic)
-
-                # --- Strict synchronization: "check" server has registered all dev
-                elif self.cmd.lower() == "check":
-                    if (save) and (dev in devs):
-                        # print "Here is where we remove the dev!"
-                        self.msg = "save_{}".format(self.tic)
-                        devs.remove(dev)
-                    else:  # either save = False or device is not in the list
-                        # print "Device {} saved the img and is no longer enabled".format(self.devid)
-                        # print "\tstill connected: ", str(devs).strip('[]')
-                        self.msg = "wait_{}".format(self.tic)
-
+#                # --- Get server time stamp: laxed synchronization
+#                elif self.cmd.lower() == "sync":  # get server time stamp
+#                    self.msg = "sync_{}".format(self.tic)
+#
+#                # --- Strict synchronization: "check" server has registered all dev
+#                elif self.cmd.lower() == "check":
+#                    if (save) and (dev in devs):
+#                        # print "Here is where we remove the dev!"
+#                        self.msg = "save_{}".format(self.tic)
+#                        devs.remove(dev)
+#                    else:  # either save = False or device is not in the list
+#                        # print "Device {} saved the img and is no longer enabled".format(self.devid)
+#                        # print "\tstill connected: ", str(devs).strip('[]')
+#                        self.msg = "wait_{}".format(self.tic)
+#
                 # --- Allow the clients to request termination using "close"
-                elif self.cmd.lower() == "close":
+                elif self.cmd[0].lower() == "close":
                     print "Terminating all threads"
-                    terminate_list.remove(dev)
                     self.msg = "close_{}".format(self.tic)
-                    done = True
-                    terminate = True
+                    close = True
+                    ready[int(self.devid) - 1] = False
+                
+                # --- Tell the node what to do, directions when not ready
+                elif self.cmd[0].lower() == "info":
+                    ready[int(self.devid) - 1] = False
+                    if action == "new":
+                        self.msg = "new_{}".format(self.tic)
+                    elif action == "restart":
+                        self.msg = "restart_{}".format(self.tic)
+                    elif close == True:
+                        self.msg = "close_{}".format(self.tic)
+                    else:
+                        self.msg = "wait_{}".format(self.tic)
+                
+                # --- Tell the node what to do, directions when ready
+                elif self.cmd[0].lower() == "ready":
+                    ready[int(self.devid) - 1] = True
+                    if action == "record":
+                        if all(device == True for device in ready):
+                            self.msg = "record_{}".format(self.tic)
+                        else:
+                            self.msg = "wait_{}".format(self.tic)
+                    elif action == "new":
+                        self.msg = "new_{}".format(self.tic)
+                    elif action == "restart":
+                        self.msg = "restart_{}".format(self.tic)
+                    elif action == "stop":
+                        self.msg = "stop_{}".format(self.tic)
+                    elif close == True:
+                        self.msg = "close_{}".format(self.tic)
+                
+                # --- Manage commands from controling device, controls
+                if (int(self.devid) == 1):
+                    if self.cmd[1].lower() == "record":
+                        action = "record"
+                        self.msg = "record_{}".format(self.tic)
+                    elif self.cmd[1].lower() == "stop":
+                        action = "stop"
+                        self.msg = "stop_{}".format(self.tic)
+                    elif self.cmd[1].lower() == "restart":
+                        action = "restart"
+                        self.msg = "restart_{}".format(self.tic)
+                    elif self.cmd[1].lower() == "new":
+                        action = "new"
+                        self.msg = "new_{}".format(self.tic)
 
                 else:  # unknown command
                     print "Unknown command {}. Use connect, check, or close".format(self.cmd)
@@ -151,7 +199,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 class ServerThread(threading.Thread):
     #HOST = "localhost"
-    HOST = "192.168.0.100"  # Local net
+    HOST = "192.168.0.12"  # Local net
 
     def __init__(self, serverid='dev1', HOST=HOST, PORT=50007):
         print 'serving %s' % serverid
@@ -170,7 +218,7 @@ if __name__ == "__main__":
     print " ====== SERVER -- RUNNING ====== "
 
     #HOST = "localhost"
-    HOST = "192.168.0.100"  # Local net
+    HOST = "192.168.0.12"  # Local net
 
 #    dev_list1 = ['dev1']
     server_thread_list = []
